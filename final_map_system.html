@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公示地价查询平台</title>
+    <!-- 天地图API -->
+    <script src="https://api.tianditu.gov.cn/api?v=4.0&tk=3b69992c24dd09531cd62b3a77b6141c"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; background: #f5f5f5; overflow: hidden; }
+        .map-container { width: 100vw; height: 100vh; position: relative; }
+        #mapContainer { width: 100%; height: 100%; background: #e8e8e8; }
+        
+        /* 隐藏天地图瓦片边框 */
+        #mapContainer img { border: none !important; }
+        .tdt-tile { border: none !important; outline: none !important; }
+        .tdt-layer { border: none !important; }
+        
+        .map-type-control {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            display: flex; background: rgba(255, 255, 255, 0.9); border-radius: 8px;
+            overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .map-type-btn {
+            padding: 12px 24px; background: transparent; border: none; cursor: pointer;
+            font-size: 16px; font-weight: 500; color: #666; transition: all 0.3s ease; min-width: 100px;
+        }
+        .map-type-btn.active { background: #4285f4; color: white; }
+        .map-type-btn:hover:not(.active) { background: rgba(66, 133, 244, 0.1); color: #4285f4; }
+        
+        .layer-toggle-btn {
+            position: absolute; top: 20px; right: 20px; width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.9); border: none; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; transition: all 0.3s ease;
+        }
+        .layer-toggle-btn:hover { background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .toggle-icon { display: flex; flex-direction: column; gap: 4px; }
+        .icon-line { width: 20px; height: 2px; background: #333; border-radius: 1px; }
+        
+        .layer-panel {
+            position: absolute; top: 80px; right: 20px; width: 280px; max-height: calc(100vh - 120px);
+            background: rgba(255, 255, 255, 0.95); border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 999; display: none; overflow: hidden;
+        }
+        .panel-header {
+            padding: 15px 20px; border-bottom: 1px solid rgba(0,0,0,0.1);
+            display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.8);
+        }
+        .panel-title { font-size: 16px; font-weight: 600; color: #333; margin: 0; }
+        .close-btn {
+            background: none; border: none; font-size: 20px; cursor: pointer; color: #666;
+            padding: 0; width: 30px; height: 30px; display: flex; align-items: center;
+            justify-content: center; border-radius: 50%; transition: all 0.2s ease;
+        }
+        .close-btn:hover { background: rgba(0,0,0,0.1); }
+        .panel-content { padding: 0; max-height: calc(100vh - 200px); overflow-y: auto; }
+        
+        .layer-group { border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .group-header {
+            padding: 15px 20px; display: flex; align-items: center; cursor: pointer;
+            background: rgba(255, 255, 255, 0.5); transition: all 0.2s ease;
+        }
+        .group-header:hover { background: rgba(0,0,0,0.02); }
+        .expand-icon { font-size: 12px; margin-right: 10px; transition: transform 0.3s ease; color: #666; }
+        .expand-icon.expanded { transform: rotate(90deg); }
+        .group-checkbox { margin-right: 10px; transform: scale(1.1); }
+        .group-label { font-size: 15px; font-weight: 500; color: #333; flex: 1; }
+        .group-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: rgba(255, 255, 255, 0.3); }
+        .group-content.expanded { max-height: 500px; }
+        
+        .layer-item {
+            padding: 12px 20px 12px 50px; display: flex; align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.03); transition: all 0.2s ease;
+        }
+        .layer-item:hover { background: rgba(0,0,0,0.02); }
+        .layer-item:last-child { border-bottom: none; }
+        .layer-checkbox { margin-right: 12px; transform: scale(1.1); }
+        .layer-label { flex: 1; font-size: 14px; color: #555; cursor: pointer; }
+        .layer-count { font-size: 12px; color: #999; margin-left: 8px; }
+        
+        @media (max-width: 768px) {
+            .layer-panel { width: calc(100vw - 40px); right: 20px; }
+            .map-type-control { top: 10px; left: 10px; transform: none; }
+            .layer-toggle-btn { top: 10px; right: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <div id="mapContainer"></div>
+        
+        <div class="map-type-control">
+            <button class="map-type-btn active" id="satelliteBtn" onclick="switchMapType('satellite')">影像图</button>
+            <button class="map-type-btn" id="roadmapBtn" onclick="switchMapType('roadmap')">电子地图</button>
+        </div>
+        
+        <button class="layer-toggle-btn" onclick="toggleLayerPanel()">
+            <div class="toggle-icon">
+                <div class="icon-line"></div>
+                <div class="icon-line"></div>
+                <div class="icon-line"></div>
+            </div>
+        </button>
+        
+        <div class="layer-panel" id="layerPanel">
+            <div class="panel-header">
+                <h3 class="panel-title">图层控制</h3>
+                <button class="close-btn" onclick="toggleLayerPanel()">×</button>
+            </div>
+            <div class="panel-content">
+                <div class="layer-group">
+                    <div class="group-header" onclick="toggleGroup('benchmark')">
+                        <span class="expand-icon expanded" id="benchmark-icon">▶</span>
+                        <input type="checkbox" class="group-checkbox" id="benchmarkGroup" onchange="toggleGroupLayers('benchmark', this.checked)">
+                        <label class="group-label" for="benchmarkGroup">城镇基准地价</label>
+                    </div>
+                    <div class="group-content expanded" id="benchmark-content">
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="levelRange" onchange="toggleLayer('level', this.checked)">
+                            <label class="layer-label" for="levelRange">定级范围</label>
+                            <span class="layer-count" id="level-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="commercialLand" onchange="toggleLayer('commercial', this.checked)">
+                            <label class="layer-label" for="commercialLand">商服用地</label>
+                            <span class="layer-count" id="commercial-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="residentialLand" onchange="toggleLayer('residential', this.checked)">
+                            <label class="layer-label" for="residentialLand">住宅用地</label>
+                            <span class="layer-count" id="residential-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="industrialLand" onchange="toggleLayer('industrial', this.checked)">
+                            <label class="layer-label" for="industrialLand">工业用地</label>
+                            <span class="layer-count" id="industrial-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="publicLand" onchange="toggleLayer('public', this.checked)">
+                            <label class="layer-label" for="publicLand">公共用地</label>
+                            <span class="layer-count" id="public-count">(0)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="layer-group">
+                    <div class="group-header" onclick="toggleGroup('transaction')">
+                        <span class="expand-icon" id="transaction-icon">▶</span>
+                        <input type="checkbox" class="group-checkbox" id="transactionGroup" onchange="toggleGroupLayers('transaction', this.checked)">
+                        <label class="group-label" for="transactionGroup">交易案例</label>
+                    </div>
+                    <div class="group-content" id="transaction-content">
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="transactionCommercial" onchange="toggleLayer('transactionCommercial', this.checked)">
+                            <label class="layer-label" for="transactionCommercial">交易案例_商服用地</label>
+                            <span class="layer-count" id="transactionCommercial-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="transactionResidential" onchange="toggleLayer('transactionResidential', this.checked)">
+                            <label class="layer-label" for="transactionResidential">交易案例_住宅用地</label>
+                            <span class="layer-count" id="transactionResidential-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="transactionIndustrial" onchange="toggleLayer('transactionIndustrial', this.checked)">
+                            <label class="layer-label" for="transactionIndustrial">交易案例_工业用地</label>
+                            <span class="layer-count" id="transactionIndustrial-count">(0)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let map = null;
+        let infoWindow = null;
+        let mapLayers = {
+            level: [], commercial: [], residential: [], industrial: [], public: [],
+            transactionCommercial: [], transactionResidential: [], transactionIndustrial: []
+        };
+        let mapData = {};
+        let currentMapType = 'satellite';
+
+        // 图层配置
+        const layerConfig = {
+            level: { name: '定级范围', file: 'data/GeoJSON/定级范围.geojson', color: '#3742fa', fillOpacity: 0.2, strokeWeight: 2, type: 'polygon' },
+            commercial: { name: '商服用地', file: 'data/GeoJSON/商服用地.geojson', color: '#ff4757', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
+            residential: { name: '住宅用地', file: 'data/GeoJSON/住宅用地.geojson', color: '#2ed573', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
+            industrial: { name: '工业用地', file: 'data/GeoJSON/工业用地.geojson', color: '#ffa502', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
+            public: { name: '公共用地', file: 'data/GeoJSON/公共用地.geojson', color: '#8854d0', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
+            transactionCommercial: { name: '交易案例_商服用地', file: 'data/GeoJSON/商服样点.geojson', color: '#e84393', fillOpacity: 0.6, strokeWeight: 2, type: 'point' },
+            transactionResidential: { name: '交易案例_住宅用地', file: 'data/GeoJSON/住宅样点.geojson', color: '#00b894', fillOpacity: 0.6, strokeWeight: 2, type: 'point' },
+            transactionIndustrial: { name: '交易案例_工业用地', file: 'data/GeoJSON/工业样点.geojson', color: '#fdcb6e', fillOpacity: 0.6, strokeWeight: 2, type: 'point' }
+        };
+
+        // 天地图 key
+        const TDT_KEY = '3b69992c24dd09531cd62b3a77b6141c';
+        
+        // 底图图层引用
+        let baseLayer = null;
+        let annoLayer = null;
+
+        // 初始化地图 - 天地图
+        function initMap() {
+            if (typeof T === 'undefined') {
+                console.error('天地图API未加载');
+                return;
+            }
+
+            try {
+                map = new T.Map('mapContainer');
+                map.centerAndZoom(new T.LngLat(113.050651, 34.459389), 12);
+                
+                // 使用天地图内置的图层类型
+                // TMAP_SATELLITE_MAP: 卫星图
+                // TMAP_NORMAL_MAP: 普通街道图
+                // TMAP_HYBRID_MAP: 卫星和路网的混合视图
+                // TMAP_TERRAIN_MAP: 地形图
+                // TMAP_TERRAIN_HYBRID_MAP: 地形和路网的混合视图
+                map.setMapType(TMAP_SATELLITE_MAP);
+                
+                // 添加控件
+                map.addControl(new T.Control.Zoom());
+                map.addControl(new T.Control.Scale());
+                
+                // 初始化信息窗体
+                infoWindow = new T.InfoWindow();
+                
+                console.log('天地图初始化完成');
+            } catch (error) {
+                console.error('地图初始化失败:', error);
+            }
+        }
+
+        // 切换地图类型
+        function switchMapType(type) {
+            if (!map) return;
+            
+            const satelliteBtn = document.getElementById('satelliteBtn');
+            const roadmapBtn = document.getElementById('roadmapBtn');
+
+            if (type === 'satellite') {
+                // 卫星混合图（卫星+路网标注）
+                map.setMapType(TMAP_HYBRID_MAP);
+                satelliteBtn.classList.add('active');
+                roadmapBtn.classList.remove('active');
+            } else {
+                // 普通街道图
+                map.setMapType(TMAP_NORMAL_MAP);
+                satelliteBtn.classList.remove('active');
+                roadmapBtn.classList.add('active');
+            }
+            currentMapType = type;
+        }
+
+        // 切换图层面板
+        function toggleLayerPanel() {
+            const panel = document.getElementById('layerPanel');
+            panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
+        }
+
+        // 切换图层组
+        function toggleGroup(groupId) {
+            const content = document.getElementById(`${groupId}-content`);
+            const icon = document.getElementById(`${groupId}-icon`);
+            content.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+
+        // 切换图层组的所有图层
+        function toggleGroupLayers(groupId, checked) {
+            const layerIds = groupId === 'benchmark' 
+                ? ['level', 'commercial', 'residential', 'industrial', 'public']
+                : ['transactionCommercial', 'transactionResidential', 'transactionIndustrial'];
+            
+            layerIds.forEach(layerType => {
+                const checkboxId = layerType === 'level' ? 'levelRange' : 
+                                   layerType.includes('transaction') ? layerType : `${layerType}Land`;
+                const checkbox = document.getElementById(checkboxId);
+                if (checkbox) {
+                    checkbox.checked = checked;
+                    toggleLayer(layerType, checked);
+                }
+            });
+        }
+
+        // 更新图层计数
+        function updateLayerCount(layerType, count) {
+            const el = document.getElementById(`${layerType}-count`);
+            if (el) {
+                el.textContent = `(${count})`;
+                el.style.color = count > 0 ? '#28a745' : '#dc3545';
+            }
+        }
+
+        // 计算多边形中心点
+        function calculateCenter(coordinates) {
+            let x = 0, y = 0;
+            coordinates.forEach(coord => { x += coord[0]; y += coord[1]; });
+            return [x / coordinates.length, y / coordinates.length];
+        }
+
+        // 创建图层
+        function createLayer(layerType, data, config) {
+            if (!data.features || data.features.length === 0) return;
+
+            // 清除现有图层
+            if (mapLayers[layerType]) {
+                mapLayers[layerType].forEach(obj => {
+                    try { map.removeOverLay(obj); } catch(e) {}
+                });
+            }
+            mapLayers[layerType] = [];
+
+            data.features.forEach((feature, index) => {
+                try {
+                    if (!feature.geometry || !feature.geometry.coordinates) return;
+                    
+                    let coordinates = feature.geometry.coordinates;
+                    const properties = feature.properties || {};
+                    const geomType = feature.geometry.type;
+                    
+                    // 处理多边形
+                    if (geomType === 'Polygon') {
+                        coordinates = coordinates[0];
+                    } else if (geomType === 'MultiPolygon') {
+                        coordinates = coordinates[0][0];
+                    }
+                    
+                    if (!Array.isArray(coordinates) || coordinates.length < 3) return;
+
+                    // 创建多边形
+                    const points = coordinates.map(coord => new T.LngLat(coord[0], coord[1]));
+                    const polygon = new T.Polygon(points, {
+                        color: config.color,
+                        weight: config.strokeWeight,
+                        opacity: 0.8,
+                        fillColor: config.color,
+                        fillOpacity: config.fillOpacity
+                    });
+
+                    // 保存属性和图层信息到多边形对象
+                    polygon._properties = properties;
+                    polygon._layerName = config.name;
+                    polygon._layerType = layerType;
+
+                    // 点击事件 - 使用闭包确保正确传递参数
+                    (function(props, name, poly) {
+                        poly.addEventListener('click', function(e) {
+                            console.log('点击图层:', name, props);
+                            if (e && e.lnglat) {
+                                showFeatureInfo(props, name, e.lnglat);
+                            } else {
+                                // 如果没有lnglat，计算多边形中心
+                                const bounds = poly.getBounds();
+                                if (bounds) {
+                                    const center = bounds.getCenter();
+                                    showFeatureInfo(props, name, center);
+                                }
+                            }
+                        });
+                    })(properties, config.name, polygon);
+
+                    // 悬停效果
+                    polygon.addEventListener('mouseover', function() {
+                        polygon.setFillOpacity(Math.min(config.fillOpacity + 0.2, 1));
+                    });
+                    polygon.addEventListener('mouseout', function() {
+                        polygon.setFillOpacity(config.fillOpacity);
+                    });
+
+                    map.addOverLay(polygon);
+                    mapLayers[layerType].push(polygon);
+
+                    // 添加标签
+                    const center = calculateCenter(coordinates);
+                    let labelText = '';
+                    
+                    // 交易案例图层显示成交价
+                    if (layerType.startsWith('transaction') && properties.成交价万元) {
+                        labelText = `${properties.成交价万元}万`;
+                    } else if (properties.地面地价 && properties.地面地价 !== '0' && layerType !== 'level') {
+                        labelText = `${properties.地面地价}元/㎡`;
+                    }
+                    
+                    if (labelText) {
+                        const label = new T.Label({
+                            text: `<div style="background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:${config.color};border:1px solid ${config.color};white-space:nowrap;">${labelText}</div>`,
+                            position: new T.LngLat(center[0], center[1]),
+                            offset: new T.Point(-20, -10)
+                        });
+                        
+                        // 标签点击事件
+                        (function(props, name, lbl, centerPos) {
+                            lbl.addEventListener('click', function(e) {
+                                console.log('点击标签:', name, props);
+                                showFeatureInfo(props, name, new T.LngLat(centerPos[0], centerPos[1]));
+                            });
+                        })(properties, config.name, label, center);
+                        
+                        map.addOverLay(label);
+                        mapLayers[layerType].push(label);
+                    }
+                } catch (error) {
+                    console.error(`创建要素失败:`, error);
+                }
+            });
+
+            console.log(`${config.name} 图层创建完成: ${mapLayers[layerType].length} 个对象`);
+        }
+
+        // 加载图层数据
+        async function loadLayerData(layerType) {
+            const config = layerConfig[layerType];
+            if (!config) return;
+
+            try {
+                const response = await fetch(config.file);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                if (data.type === 'FeatureCollection' && data.features) {
+                    mapData[layerType] = data;
+                    updateLayerCount(layerType, data.features.length);
+                    createLayer(layerType, data, config);
+                }
+            } catch (error) {
+                console.error(`${config.name} 加载失败:`, error);
+                updateLayerCount(layerType, 0);
+            }
+        }
+
+        // 切换图层显示
+        async function toggleLayer(layerType, visible) {
+            if (!mapData[layerType] && visible) {
+                await loadLayerData(layerType);
+            }
+
+            if (mapLayers[layerType]) {
+                mapLayers[layerType].forEach(obj => {
+                    if (visible) obj.show();
+                    else obj.hide();
+                });
+            }
+        }
+
+        // 显示要素信息
+        function showFeatureInfo(properties, layerName, position) {
+            if (!map) return;
+            
+            console.log('显示信息:', layerName, properties, position);
+
+            let html = `<div style="padding:10px;min-width:180px;max-width:280px;">`;
+            html += `<div style="font-size:15px;font-weight:600;color:#333;margin-bottom:10px;border-bottom:2px solid #4285f4;padding-bottom:6px;">${layerName}</div>`;
+
+            if (layerName === '定级范围') {
+                if (properties.面积 != null) {
+                    html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(2)} ㎡</span></div>`;
+                }
+            } else if (layerName.startsWith('交易案例_')) {
+                // 交易案例图层显示所有属性
+                const fields = ['位置', '年份', '用途4', '成交价万元', '容积率2', '权利人'];
+                fields.forEach(field => {
+                    if (properties[field] != null && properties[field] !== '') {
+                        let value = properties[field];
+                        let style = 'color:#333;';
+                        if (field === '成交价万元') {
+                            value = `${value} 万元`;
+                            style = 'color:#e74c3c;font-weight:bold;font-size:14px;';
+                        }
+                        html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">${field}：</span><span style="${style}">${value}</span></div>`;
+                    }
+                });
+            } else {
+                // 其他基准地价图层
+                if (properties.一级用途) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">一级用途：</span><span style="color:#333;">${properties.一级用途}</span></div>`;
+                if (properties.土地级别) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">土地级别：</span><span style="color:#333;">${properties.土地级别}</span></div>`;
+                if (properties.面积 != null) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(2)} ㎡</span></div>`;
+                if (properties.地面地价) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地面地价：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地面地价} 元/㎡</span></div>`;
+            }
+
+            html += `</div>`;
+
+            // 确定位置
+            let lnglat;
+            if (position && typeof position.getLng === 'function') {
+                lnglat = position;
+            } else if (position && position.lng != null && position.lat != null) {
+                lnglat = new T.LngLat(position.lng, position.lat);
+            } else {
+                lnglat = map.getCenter();
+            }
+            
+            // 关闭之前的信息窗口
+            if (infoWindow) {
+                try { map.removeOverLay(infoWindow); } catch(e) {}
+            }
+            
+            // 创建新的信息窗口
+            infoWindow = new T.InfoWindow(html, {
+                offset: new T.Point(0, -10)
+            });
+            infoWindow.setLngLat(lnglat);
+            map.addOverLay(infoWindow);
+            
+            console.log('信息窗口已显示在:', lnglat);
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            console.log('页面加载完成，开始初始化天地图...');
+            if (typeof T !== 'undefined') {
+                initMap();
+            } else {
+                console.error('天地图API加载失败');
+            }
+        });
+
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('全局错误:', event.error);
+        });
+    </script>
+</body>
+</html>
