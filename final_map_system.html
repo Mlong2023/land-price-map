@@ -17,6 +17,16 @@
         .tdt-tile { border: none !important; outline: none !important; }
         .tdt-layer { border: none !important; }
         
+        /* 去掉天地图Label标签的默认白色背景 */
+        .tdt-label { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+        .tdt-label-content { background: transparent !important; border: none !important; }
+        div[class*="tdt-label"] { background: transparent !important; border: none !important; padding: 0 !important; }
+        
+        /* InfoWindow信息窗口样式 - 白色不透明背景 */
+        .tdt-infowindow-content-wrapper { background: #fff !important; border-radius: 6px !important; }
+        .tdt-infowindow { background: #fff !important; }
+        .tdt-infowindow-content { background: #fff !important; }
+        
         .map-type-control {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
             display: flex; background: rgba(255, 255, 255, 0.9); border-radius: 8px;
@@ -48,7 +58,13 @@
             padding: 15px 20px; border-bottom: 1px solid rgba(0,0,0,0.1);
             display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.8);
         }
-        .panel-title { font-size: 16px; font-weight: 600; color: #333; margin: 0; }
+        .panel-title { font-size: 16px; font-weight: 600; color: #333; margin: 0; flex: 1; }
+        .refresh-btn {
+            background: none; border: none; font-size: 18px; cursor: pointer; color: #4285f4;
+            padding: 0; width: 30px; height: 30px; display: flex; align-items: center;
+            justify-content: center; border-radius: 50%; transition: all 0.3s ease; margin-right: 5px;
+        }
+        .refresh-btn:hover { background: rgba(66, 133, 244, 0.1); transform: rotate(180deg); }
         .close-btn {
             background: none; border: none; font-size: 20px; cursor: pointer; color: #666;
             padding: 0; width: 30px; height: 30px; display: flex; align-items: center;
@@ -84,12 +100,261 @@
             .layer-panel { width: calc(100vw - 40px); right: 20px; }
             .map-type-control { top: 10px; left: 10px; transform: none; }
             .layer-toggle-btn { top: 10px; right: 10px; }
+            .search-panel { width: calc(100vw - 40px); }
+        }
+        
+        /* 搜索面板样式 */
+        .search-panel {
+            position: absolute; top: 20px; left: 60px; width: 420px; z-index: 1000;
+            background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease; overflow: visible;
+        }
+        .search-panel.collapsed { width: 50px; }
+        .search-panel.collapsed .search-content { display: none; }
+        .search-panel.collapsed .collapse-btn { transform: rotate(180deg); }
+        .search-panel.collapsed .search-header > *:not(.collapse-btn) { display: none; }
+        
+        .search-header {
+            display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #eee;
+        }
+        .collapse-btn {
+            width: 30px; height: 30px; border: none; background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 16px; color: #666;
+            transition: transform 0.3s ease; flex-shrink: 0;
+        }
+        .collapse-btn:hover { color: #4285f4; }
+        
+        .search-input-wrap {
+            flex: 1; display: flex; align-items: center; margin: 0 8px; min-width: 0;
+        }
+        .search-input {
+            flex: 1; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px;
+            font-size: 14px; outline: none; transition: border-color 0.2s; min-width: 120px;
+        }
+        .search-input:focus { border-color: #4285f4; }
+        
+        .spatial-btn {
+            width: 36px; height: 36px; border: 1px solid #ddd; background: #fff; border-radius: 4px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            margin-right: 8px; transition: all 0.2s; flex-shrink: 0;
+        }
+        .spatial-btn:hover { border-color: #4285f4; background: #f0f7ff; }
+        .spatial-btn svg { width: 20px; height: 20px; fill: #666; }
+        
+        .search-btn {
+            padding: 8px 16px; background: #4285f4; color: #fff; border: none; border-radius: 4px;
+            cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 14px;
+            transition: background 0.2s; flex-shrink: 0;
+        }
+        .search-btn:hover { background: #3367d6; }
+        .search-btn svg { width: 16px; height: 16px; fill: #fff; }
+        
+        .search-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .search-content.expanded { max-height: 400px; }
+        
+        .search-results {
+            max-height: 350px; overflow-y: auto; border-top: 1px solid #eee;
+        }
+        .search-result-item {
+            padding: 12px 15px; display: flex; align-items: center; cursor: pointer;
+            border-bottom: 1px solid #f5f5f5; transition: background 0.2s;
+        }
+        .search-result-item:hover { background: #f8f9fa; }
+        .result-icon { color: #e74c3c; margin-right: 10px; font-size: 16px; }
+        .result-info { flex: 1; }
+        .result-name { font-size: 14px; color: #333; margin-bottom: 2px; }
+        .result-address { font-size: 12px; color: #999; }
+        .result-marker { color: #e74c3c; font-size: 18px; }
+        
+        .clear-results {
+            padding: 10px; text-align: center; color: #999; font-size: 13px;
+            cursor: pointer; border-top: 1px solid #eee;
+        }
+        .clear-results:hover { color: #e74c3c; background: #fef5f5; }
+        
+        /* 加载动画 */
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        /* 空间查询面板 */
+        .spatial-panel {
+            position: absolute; top: 70px; left: 20px; width: 420px; z-index: 999;
+            background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            display: none; overflow: visible;
+        }
+        .spatial-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 15px; border-bottom: 1px solid #eee; background: #fafafa;
+        }
+        .spatial-tools { display: flex; gap: 15px; }
+        .spatial-tool {
+            width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .spatial-tool:hover { background: #e8f0fe; }
+        .spatial-tool.active { background: #4285f4; }
+        .spatial-tool.active svg { fill: #fff; }
+        .spatial-tool svg { width: 22px; height: 22px; fill: #555; }
+        .spatial-close {
+            width: 28px; height: 28px; border: none; background: transparent; cursor: pointer;
+            font-size: 20px; color: #666; display: flex; align-items: center; justify-content: center;
+        }
+        .spatial-close:hover { color: #e74c3c; }
+        
+        .spatial-content { padding: 15px; }
+        .spatial-hint {
+            text-align: center; color: #f39c12; font-size: 12px; margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        .spatial-hint div { margin: 2px 0; }
+        .coord-group {
+            display: flex; align-items: center; margin-bottom: 10px; gap: 8px;
+        }
+        .coord-input {
+            flex: 1; border: 1px solid #ddd; border-radius: 4px; padding: 8px 10px;
+            font-size: 13px; outline: none; text-align: center; min-width: 0;
+        }
+        .coord-input:focus { border-color: #4285f4; }
+        .coord-sep { color: #999; font-weight: bold; flex-shrink: 0; }
+        .coord-delete {
+            width: 28px; height: 28px; border: 1px solid #ddd; background: #fff; border-radius: 4px;
+            cursor: pointer; color: #e74c3c; font-size: 16px; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s; flex-shrink: 0;
+        }
+        .coord-delete:hover { background: #fef5f5; border-color: #e74c3c; }
+        .coord-add-btn {
+            width: 36px; height: 36px; border: 1px solid #ddd; background: #fafafa; border-radius: 4px;
+            cursor: pointer; font-size: 20px; color: #999; transition: all 0.2s; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .coord-add-btn:hover { border-color: #4285f4; color: #4285f4; background: #f0f7ff; }
+        
+        .spatial-actions {
+            display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;
+        }
+        .locate-btn {
+            flex: 1; padding: 10px; background: #4285f4; color: #fff; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 14px; transition: background 0.2s;
+        }
+        .locate-btn:hover { background: #3367d6; }
+        .clear-btn {
+            padding: 10px 20px; background: #fff; color: #666; border: 1px solid #ddd; border-radius: 4px;
+            cursor: pointer; font-size: 14px; transition: all 0.2s;
+        }
+        .clear-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+        
+        .file-input { display: none; }
+        
+        /* 绘制面板样式 */
+        .draw-panel {
+            position: absolute; bottom: 30px; right: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.95); border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.2); overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .draw-panel.collapsed .draw-content { display: none; }
+        .draw-panel.collapsed { border-radius: 50%; width: 44px; height: 44px; }
+        .draw-panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 12px; background: #4285f4; color: #fff; cursor: pointer;
+        }
+        .draw-panel.collapsed .draw-panel-header {
+            padding: 10px; justify-content: center; border-radius: 50%;
+        }
+        .draw-panel-title { font-size: 13px; font-weight: 500; }
+        .draw-panel.collapsed .draw-panel-title { display: none; }
+        .draw-panel-toggle {
+            background: none; border: none; color: #fff; cursor: pointer;
+            font-size: 16px; padding: 0; width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .draw-content { padding: 10px; }
+        .draw-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .draw-tool-btn {
+            width: 44px; height: 44px; border: 1px solid #ddd; background: #fff;
+            border-radius: 8px; cursor: pointer; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 2px;
+            transition: all 0.2s ease; font-size: 10px; color: #666;
+        }
+        .draw-tool-btn:hover { border-color: #4285f4; background: #f0f7ff; color: #4285f4; }
+        .draw-tool-btn.active { border-color: #4285f4; background: #4285f4; color: #fff; }
+        .draw-tool-btn svg { width: 20px; height: 20px; fill: currentColor; }
+        .draw-tool-btn.active svg { fill: #fff; }
+        .draw-tool-btn.undo-btn:hover { border-color: #f39c12; color: #f39c12; }
+        .draw-tool-btn.clear-draw-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+        .draw-info {
+            margin-top: 8px; padding: 6px 10px; background: #f5f5f5; border-radius: 4px;
+            font-size: 11px; color: #666; text-align: center; min-height: 24px;
         }
     </style>
 </head>
 <body>
     <div class="map-container">
         <div id="mapContainer"></div>
+        
+        <!-- 搜索面板 -->
+        <div class="search-panel" id="searchPanel">
+            <div class="search-header">
+                <button class="collapse-btn" onclick="toggleSearchPanel()" title="收起/展开">«</button>
+                <div class="search-input-wrap">
+                    <input type="text" class="search-input" id="searchInput" placeholder="输入地址搜索..." onkeyup="handleSearchKeyup(event)">
+                </div>
+                <button class="spatial-btn" onclick="toggleSpatialPanel()" title="空间查询">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                </button>
+                <button class="search-btn" onclick="doSearch()">
+                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    搜索
+                </button>
+            </div>
+            <div class="search-content" id="searchContent">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+        </div>
+        
+        <!-- 空间查询面板 -->
+        <div class="spatial-panel" id="spatialPanel">
+            <div class="spatial-header">
+                <button class="collapse-btn" onclick="toggleSpatialPanel()">«</button>
+                <div class="spatial-tools">
+                    <button class="spatial-tool" onclick="uploadCoordFile()" title="上传坐标文件" id="uploadBtn">
+                        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+                    </button>
+                </div>
+                <button class="spatial-close" onclick="toggleSpatialPanel()">×</button>
+            </div>
+            <div class="spatial-content">
+                <div class="spatial-hint">
+                    <div>※1组坐标点图层、3组坐标面图层※</div>
+                    <div>※XY值与宗地图中相反且带带号※</div>
+                </div>
+                <div id="coordInputs">
+                    <div class="coord-group">
+                        <input type="text" class="coord-input" placeholder="输入X/经度" data-index="0" data-type="x">
+                        <span class="coord-sep">-</span>
+                        <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="0" data-type="y">
+                    </div>
+                    <div class="coord-group">
+                        <input type="text" class="coord-input" placeholder="输入X/经度" data-index="1" data-type="x">
+                        <span class="coord-sep">-</span>
+                        <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="1" data-type="y">
+                    </div>
+                    <div class="coord-group">
+                        <input type="text" class="coord-input" placeholder="输入X/经度" data-index="2" data-type="x">
+                        <span class="coord-sep">-</span>
+                        <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="2" data-type="y">
+                        <button class="coord-add-btn" onclick="addCoordGroup()" title="添加坐标组">+</button>
+                    </div>
+                </div>
+                <div class="spatial-actions">
+                    <button class="locate-btn" onclick="locateByCoords()">定位</button>
+                    <button class="clear-btn" onclick="clearCoords()">清除</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 文件上传 -->
+        <input type="file" class="file-input" id="coordFileInput" accept=".txt" onchange="handleFileUpload(event)">
         
         <div class="map-type-control">
             <button class="map-type-btn active" id="satelliteBtn" onclick="switchMapType('satellite')">影像图</button>
@@ -104,9 +369,45 @@
             </div>
         </button>
         
+        <!-- 绘制面板 -->
+        <div class="draw-panel" id="drawPanel">
+            <div class="draw-panel-header" onclick="toggleDrawPanel()">
+                <span class="draw-panel-title">绘制工具</span>
+                <button class="draw-panel-toggle" title="收起/展开">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+            </div>
+            <div class="draw-content">
+                <div class="draw-tools">
+                    <button class="draw-tool-btn" id="drawPointToolBtn" onclick="startDraw('point')" title="绘制点">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
+                        <span>点</span>
+                    </button>
+                    <button class="draw-tool-btn" id="drawLineToolBtn" onclick="startDraw('line')" title="绘制线（测距）">
+                        <svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4L22 6.5"/><circle cx="3.5" cy="18.5" r="2"/><circle cx="22" cy="6.5" r="2"/></svg>
+                        <span>线</span>
+                    </button>
+                    <button class="draw-tool-btn" id="drawPolygonToolBtn" onclick="startDraw('polygon')" title="绘制面">
+                        <svg viewBox="0 0 24 24"><path d="M3 5l9-4 9 4v6l-9 8-9-8V5z"/></svg>
+                        <span>面</span>
+                    </button>
+                    <button class="draw-tool-btn undo-btn" onclick="undoDraw()" title="撤回">
+                        <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                        <span>撤回</span>
+                    </button>
+                    <button class="draw-tool-btn clear-draw-btn" onclick="clearAllDraw()" title="清除">
+                        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+                        <span>清除</span>
+                    </button>
+                </div>
+                <div class="draw-info" id="drawInfo">点击按钮开始绘制</div>
+            </div>
+        </div>
+        
         <div class="layer-panel" id="layerPanel">
             <div class="panel-header">
                 <h3 class="panel-title">图层控制</h3>
+                <button class="refresh-btn" onclick="refreshAllLayers()" title="刷新数据">⟳</button>
                 <button class="close-btn" onclick="toggleLayerPanel()">×</button>
             </div>
             <div class="panel-content">
@@ -138,9 +439,19 @@
                             <span class="layer-count" id="industrial-count">(0)</span>
                         </div>
                         <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="storageLand" onchange="toggleLayer('storage', this.checked)">
+                            <label class="layer-label" for="storageLand">仓储用地</label>
+                            <span class="layer-count" id="storage-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
                             <input type="checkbox" class="layer-checkbox" id="publicLand" onchange="toggleLayer('public', this.checked)">
                             <label class="layer-label" for="publicLand">公共用地</label>
                             <span class="layer-count" id="public-count">(0)</span>
+                        </div>
+                        <div class="layer-item">
+                            <input type="checkbox" class="layer-checkbox" id="transportLand" onchange="toggleLayer('transport', this.checked)">
+                            <label class="layer-label" for="transportLand">交通运输用地</label>
+                            <span class="layer-count" id="transport-count">(0)</span>
                         </div>
                     </div>
                 </div>
@@ -177,7 +488,7 @@
         let map = null;
         let infoWindow = null;
         let mapLayers = {
-            level: [], commercial: [], residential: [], industrial: [], public: [],
+            level: [], commercial: [], residential: [], industrial: [], storage: [], public: [], transport: [],
             transactionCommercial: [], transactionResidential: [], transactionIndustrial: []
         };
         let mapData = {};
@@ -185,15 +496,79 @@
 
         // 图层配置
         const layerConfig = {
-            level: { name: '定级范围', file: 'data/GeoJSON/定级范围.geojson', color: '#3742fa', fillOpacity: 0.2, strokeWeight: 2, type: 'polygon' },
+            level: { name: '定级范围', file: 'data/GeoJSON/定级范围.geojson', color: 'rgb(191,11,59)', fillOpacity: 0.2, strokeWeight: 2, type: 'polygon' },
             commercial: { name: '商服用地', file: 'data/GeoJSON/商服用地.geojson', color: '#ff4757', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
             residential: { name: '住宅用地', file: 'data/GeoJSON/住宅用地.geojson', color: '#2ed573', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
             industrial: { name: '工业用地', file: 'data/GeoJSON/工业用地.geojson', color: '#ffa502', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
+            storage: { name: '仓储用地', file: 'data/GeoJSON/仓储用地.geojson', color: '#6c5ce7', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
             public: { name: '公共用地', file: 'data/GeoJSON/公共用地.geojson', color: '#8854d0', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
+            transport: { name: '交通运输用地', file: 'data/GeoJSON/交通运输用地.geojson', color: '#00cec9', fillOpacity: 0.4, strokeWeight: 2, type: 'polygon' },
             transactionCommercial: { name: '交易案例_商服用地', file: 'data/GeoJSON/商服样点.geojson', color: '#e84393', fillOpacity: 0.6, strokeWeight: 2, type: 'point' },
             transactionResidential: { name: '交易案例_住宅用地', file: 'data/GeoJSON/住宅样点.geojson', color: '#00b894', fillOpacity: 0.6, strokeWeight: 2, type: 'point' },
             transactionIndustrial: { name: '交易案例_工业用地', file: 'data/GeoJSON/工业样点.geojson', color: '#fdcb6e', fillOpacity: 0.6, strokeWeight: 2, type: 'point' }
         };
+
+        // 根据土地级别获取颜色
+        function getColorByLevel(layerType, properties) {
+            const level = properties.土地级别;
+            
+            // 商服用地和住宅用地颜色配置（Ⅰ到Ⅹ）
+            const commercialResidentialColors = {
+                'Ⅰ': 'rgb(255,85,0)',
+                'Ⅱ': 'rgb(255,115,115)',
+                'Ⅲ': 'rgb(255,153,153)',
+                'Ⅳ': 'rgb(255,191,191)',
+                'Ⅴ': 'rgb(255,212,212)',
+                'Ⅵ': 'rgb(255,230,230)',
+                'Ⅶ': 'rgb(255,236,191)',
+                'Ⅷ': 'rgb(255,255,214)',
+                'Ⅸ': 'rgb(242,255,217)',
+                'Ⅹ': 'rgb(249,255,237)'
+            };
+            
+            // 工业用地颜色配置
+            const industrialColors = {
+                '工业控制区': 'rgb(125,19,21)',
+                'Ⅰ': 'rgb(235,29,34)',
+                'Ⅱ': 'rgb(239,94,33)',
+                'Ⅲ': 'rgb(251,205,17)',
+                'Ⅳ': 'rgb(189,214,56)',
+                'Ⅴ': 'rgb(129,201,152)',
+                'Ⅵ': 'rgb(72,198,235)',
+                'Ⅶ': 'rgb(60,109,180)',
+                'Ⅷ': 'rgb(55,82,164)',
+                'Ⅸ': 'rgb(37,43,128)'
+            };
+            
+            // 公共用地颜色配置
+            const publicColors = {
+                'Ⅰ': 'rgb(235,29,34)',
+                'Ⅱ': 'rgb(239,94,33)',
+                'Ⅲ': 'rgb(251,205,17)',
+                'Ⅳ': 'rgb(189,214,56)',
+                'Ⅴ': 'rgb(129,201,152)',
+                'Ⅵ': 'rgb(72,198,235)',
+                'Ⅶ': 'rgb(60,109,180)',
+                'Ⅷ': 'rgb(55,82,164)',
+                'Ⅸ': 'rgb(37,43,128)'
+            };
+            
+            if (layerType === 'level') {
+                // 定级范围固定颜色
+                return 'rgb(191,11,59)';
+            } else if (layerType === 'commercial' || layerType === 'residential') {
+                // 商服用地和住宅用地
+                return commercialResidentialColors[level] || layerConfig[layerType].color;
+            } else if (layerType === 'industrial') {
+                // 工业用地
+                return industrialColors[level] || layerConfig[layerType].color;
+            } else if (layerType === 'public' || layerType === 'storage' || layerType === 'transport') {
+                // 公共用地、仓储用地、交通运输用地（使用相同颜色配置）
+                return publicColors[level] || layerConfig[layerType].color;
+            }
+            
+            return layerConfig[layerType].color;
+        }
 
         // 天地图 key
         const TDT_KEY = '3b69992c24dd09531cd62b3a77b6141c';
@@ -211,7 +586,7 @@
 
             try {
                 map = new T.Map('mapContainer');
-                map.centerAndZoom(new T.LngLat(113.050651, 34.459389), 12);
+                map.centerAndZoom(new T.LngLat(113.6254, 34.7466), 12);
                 
                 // 使用天地图内置的图层类型
                 // TMAP_SATELLITE_MAP: 卫星图
@@ -229,6 +604,14 @@
                 infoWindow = new T.InfoWindow();
                 
                 console.log('天地图初始化完成');
+                
+                // 延迟初始化绘制事件，确保所有函数已定义
+                setTimeout(function() {
+                    if (typeof initDrawEvents === 'function') {
+                        initDrawEvents();
+                        console.log('绘制事件初始化完成');
+                    }
+                }, 100);
             } catch (error) {
                 console.error('地图初始化失败:', error);
             }
@@ -272,7 +655,7 @@
         // 切换图层组的所有图层
         function toggleGroupLayers(groupId, checked) {
             const layerIds = groupId === 'benchmark' 
-                ? ['level', 'commercial', 'residential', 'industrial', 'public']
+                ? ['level', 'commercial', 'residential', 'industrial', 'storage', 'public', 'transport']
                 : ['transactionCommercial', 'transactionResidential', 'transactionIndustrial'];
             
             layerIds.forEach(layerType => {
@@ -331,13 +714,16 @@
                     
                     if (!Array.isArray(coordinates) || coordinates.length < 3) return;
 
-                    // 创建多边形
+                    // 根据土地级别获取颜色
+                    const featureColor = getColorByLevel(layerType, properties);
+
+                    // 创建多边形 - 默认白色边框，稍粗
                     const points = coordinates.map(coord => new T.LngLat(coord[0], coord[1]));
                     const polygon = new T.Polygon(points, {
-                        color: config.color,
-                        weight: config.strokeWeight,
-                        opacity: 0.8,
-                        fillColor: config.color,
+                        color: '#ffffff',           // 默认白色边框
+                        weight: 3,                  // 稍粗的边框
+                        opacity: 1,
+                        fillColor: featureColor,
                         fillOpacity: config.fillOpacity
                     });
 
@@ -345,6 +731,9 @@
                     polygon._properties = properties;
                     polygon._layerName = config.name;
                     polygon._layerType = layerType;
+                    polygon._featureColor = featureColor;
+                    polygon._hoverTimer = null;     // 悬停计时器
+                    polygon._isHighlighted = false; // 是否高亮状态
 
                     // 点击事件 - 使用闭包确保正确传递参数
                     (function(props, name, poly) {
@@ -363,33 +752,94 @@
                         });
                     })(properties, config.name, polygon);
 
-                    // 悬停效果
-                    polygon.addEventListener('mouseover', function() {
-                        polygon.setFillOpacity(Math.min(config.fillOpacity + 0.2, 1));
-                    });
-                    polygon.addEventListener('mouseout', function() {
-                        polygon.setFillOpacity(config.fillOpacity);
-                    });
+                    // 悬停效果 - 3秒后变色并显示信息
+                    (function(props, name, poly, color, cfg) {
+                        let hoverTimer = null;
+                        let isHighlighted = false;
+                        
+                        poly.addEventListener('mouseover', function(e) {
+                            console.log('鼠标进入图层:', name);
+                            // 清除之前的计时器
+                            if (hoverTimer) {
+                                clearTimeout(hoverTimer);
+                            }
+                            // 1秒后触发高亮和显示信息
+                            hoverTimer = setTimeout(function() {
+                                console.log('3秒到，触发高亮:', name);
+                                try {
+                                    // 改变边框颜色为特征颜色
+                                    poly.setColor(color);
+                                    poly.setWeight(4);
+                                    poly.setFillOpacity(Math.min(cfg.fillOpacity + 0.2, 0.8));
+                                    isHighlighted = true;
+                                    
+                                    // 显示属性信息 - 使用多边形中心点
+                                    const bounds = poly.getBounds();
+                                    if (bounds) {
+                                        const center = bounds.getCenter();
+                                        showFeatureInfo(props, name, center);
+                                    }
+                                } catch(err) {
+                                    console.error('高亮设置失败:', err);
+                                }
+                            }, 1000);
+                        });
+                        
+                        poly.addEventListener('mouseout', function() {
+                            console.log('鼠标离开图层:', name);
+                            // 清除计时器
+                            if (hoverTimer) {
+                                clearTimeout(hoverTimer);
+                                hoverTimer = null;
+                            }
+                            // 恢复默认样式
+                            try {
+                                poly.setColor('#ffffff');
+                                poly.setWeight(3);
+                                poly.setFillOpacity(cfg.fillOpacity);
+                                isHighlighted = false;
+                            } catch(err) {
+                                console.error('恢复样式失败:', err);
+                            }
+                        });
+                    })(properties, config.name, polygon, featureColor, config);
 
                     map.addOverLay(polygon);
                     mapLayers[layerType].push(polygon);
 
                     // 添加标签
                     const center = calculateCenter(coordinates);
-                    let labelText = '';
+                    let labelHtml = '';
                     
-                    // 交易案例图层显示成交价
-                    if (layerType.startsWith('transaction') && properties.成交价万元) {
-                        labelText = `${properties.成交价万元}万`;
-                    } else if (properties.地面地价 && properties.地面地价 !== '0' && layerType !== 'level') {
-                        labelText = `${properties.地面地价}元/㎡`;
+                    // 交易案例图层显示成交价 - 不同形状
+                    if (layerType === 'transactionCommercial' && properties.成交价万元) {
+                        // 商服用地 - 圆形
+                        labelHtml = `<div style="width:36px;height:36px;border-radius:50%;background:${featureColor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:#fff;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${properties.成交价万元}万</div>`;
+                    } else if (layerType === 'transactionResidential' && properties.成交价万元) {
+                        // 住宅用地 - 正方形
+                        labelHtml = `<div style="width:36px;height:36px;border-radius:3px;background:${featureColor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:#fff;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${properties.成交价万元}万</div>`;
+                    } else if (layerType === 'transactionIndustrial' && properties.成交价万元) {
+                        // 工业用地 - 正六边形
+                        labelHtml = `<div style="position:relative;width:40px;height:36px;display:flex;align-items:center;justify-content:center;">
+                            <div style="position:absolute;width:36px;height:36px;background:${featureColor};clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>
+                            <span style="position:relative;z-index:1;font-size:9px;font-weight:bold;color:#fff;text-align:center;">${properties.成交价万元}万</span>
+                        </div>`;
+                    } else if ((properties.地价 || properties.地面地价) && (properties.地价 || properties.地面地价) !== '0' && layerType !== 'level') {
+                        // 商服用地/住宅用地/工业用地/公共用地 显示两行
+                        const line1 = properties.用途 || properties.一级用途 || '';
+                        const priceValue = properties.地价 || properties.地面地价;
+                        const line2 = (properties.土地级别 || '') + '：' + priceValue + '元/㎡';
+                        labelHtml = `<div style="background:rgba(255,255,255,0.92);padding:4px 8px;border-radius:4px;border:1px solid ${featureColor};white-space:nowrap;text-align:center;line-height:1.4;">
+                            <div style="font-size:10px;color:#333;font-weight:500;">${line1}</div>
+                            <div style="font-size:11px;color:${featureColor};font-weight:bold;">${line2}</div>
+                        </div>`;
                     }
                     
-                    if (labelText) {
+                    if (labelHtml) {
                         const label = new T.Label({
-                            text: `<div style="background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:${config.color};border:1px solid ${config.color};white-space:nowrap;">${labelText}</div>`,
+                            text: labelHtml,
                             position: new T.LngLat(center[0], center[1]),
-                            offset: new T.Point(-20, -10)
+                            offset: new T.Point(-18, -18)
                         });
                         
                         // 标签点击事件
@@ -417,7 +867,7 @@
             if (!config) return;
 
             try {
-                const response = await fetch(config.file);
+                const response = await fetch(config.file + '?t=' + Date.now());
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const data = await response.json();
@@ -430,6 +880,48 @@
                 console.error(`${config.name} 加载失败:`, error);
                 updateLayerCount(layerType, 0);
             }
+        }
+
+        // 刷新所有图层数据
+        async function refreshAllLayers() {
+            // 清除所有图层覆盖物
+            for (const layerType in mapLayers) {
+                mapLayers[layerType].forEach(obj => {
+                    try { map.removeOverLay(obj); } catch(e) {}
+                });
+                mapLayers[layerType] = [];
+            }
+            
+            // 清除缓存数据
+            for (const key in mapData) {
+                delete mapData[key];
+            }
+            
+            // 获取当前勾选的图层
+            const checkedLayers = [];
+            const allLayerTypes = ['level', 'commercial', 'residential', 'industrial', 'storage', 'public', 'transport',
+                                   'transactionCommercial', 'transactionResidential', 'transactionIndustrial'];
+            const checkboxIds = {
+                'level': 'levelRange', 'commercial': 'commercialLand', 'residential': 'residentialLand',
+                'industrial': 'industrialLand', 'storage': 'storageLand', 'public': 'publicLand', 'transport': 'transportLand',
+                'transactionCommercial': 'transactionCommercial', 'transactionResidential': 'transactionResidential',
+                'transactionIndustrial': 'transactionIndustrial'
+            };
+            
+            allLayerTypes.forEach(layerType => {
+                const checkbox = document.getElementById(checkboxIds[layerType]);
+                if (checkbox && checkbox.checked) {
+                    checkedLayers.push(layerType);
+                }
+                updateLayerCount(layerType, 0);
+            });
+            
+            // 重新加载勾选的图层
+            for (const layerType of checkedLayers) {
+                await loadLayerData(layerType);
+            }
+            
+            console.log('数据刷新完成');
         }
 
         // 切换图层显示
@@ -452,12 +944,12 @@
             
             console.log('显示信息:', layerName, properties, position);
 
-            let html = `<div style="padding:10px;min-width:180px;max-width:280px;">`;
+            let html = `<div style="padding:12px 15px;min-width:200px;max-width:300px;background:#fff;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.15);">`;
             html += `<div style="font-size:15px;font-weight:600;color:#333;margin-bottom:10px;border-bottom:2px solid #4285f4;padding-bottom:6px;">${layerName}</div>`;
 
             if (layerName === '定级范围') {
                 if (properties.面积 != null) {
-                    html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(2)} ㎡</span></div>`;
+                    html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(4)} hm²</span></div>`;
                 }
             } else if (layerName.startsWith('交易案例_')) {
                 // 交易案例图层显示所有属性
@@ -473,12 +965,27 @@
                         html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">${field}：</span><span style="${style}">${value}</span></div>`;
                     }
                 });
-            } else {
-                // 其他基准地价图层
-                if (properties.一级用途) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">一级用途：</span><span style="color:#333;">${properties.一级用途}</span></div>`;
+            } else if (layerName === '商服用地' || layerName === '住宅用地') {
+                // 商服用地和住宅用地：用途、土地级别、区片号、地价、地价万元、面积
+                if (properties.用途) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">用途：</span><span style="color:#333;">${properties.用途}</span></div>`;
                 if (properties.土地级别) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">土地级别：</span><span style="color:#333;">${properties.土地级别}</span></div>`;
-                if (properties.面积 != null) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(2)} ㎡</span></div>`;
-                if (properties.地面地价) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地面地价：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地面地价} 元/㎡</span></div>`;
+                if (properties.区片号) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">区片号：</span><span style="color:#333;">${properties.区片号}</span></div>`;
+                if (properties.地价) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地价：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地价} 元/㎡</span></div>`;
+                if (properties.地价万元) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地价万元：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地价万元} 万元/亩</span></div>`;
+                if (properties.面积 != null) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(4)} hm²</span></div>`;
+            } else if (layerName === '工业用地' || layerName === '公共用地' || layerName === '仓储用地' || layerName === '交通运输用地') {
+                // 工业用地、公共用地、仓储用地、交通运输用地：用途、土地级别、地价、地价万元、面积
+                if (properties.用途) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">用途：</span><span style="color:#333;">${properties.用途}</span></div>`;
+                if (properties.土地级别) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">土地级别：</span><span style="color:#333;">${properties.土地级别}</span></div>`;
+                if (properties.地价) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地价：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地价} 元/㎡</span></div>`;
+                if (properties.地价万元) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地价万元：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地价万元} 万元/亩</span></div>`;
+                if (properties.面积 != null) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(4)} hm²</span></div>`;
+            } else {
+                // 其他图层（兼容旧属性名）
+                if (properties.用途 || properties.一级用途) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">用途：</span><span style="color:#333;">${properties.用途 || properties.一级用途}</span></div>`;
+                if (properties.土地级别) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">土地级别：</span><span style="color:#333;">${properties.土地级别}</span></div>`;
+                if (properties.地价 || properties.地面地价) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">地价：</span><span style="color:#e74c3c;font-weight:bold;">${properties.地价 || properties.地面地价} 元/㎡</span></div>`;
+                if (properties.面积 != null) html += `<div style="margin-bottom:6px;"><span style="color:#666;font-size:12px;">面积：</span><span style="color:#333;">${Number(properties.面积).toFixed(4)} hm²</span></div>`;
             }
 
             html += `</div>`;
@@ -513,6 +1020,8 @@
             console.log('页面加载完成，开始初始化天地图...');
             if (typeof T !== 'undefined') {
                 initMap();
+                // 初始化本地搜索
+                initLocalSearch();
             } else {
                 console.error('天地图API加载失败');
             }
@@ -522,6 +1031,1137 @@
         window.addEventListener('error', function(event) {
             console.error('全局错误:', event.error);
         });
+
+        // ==================== 搜索功能 ====================
+        let searchMarkers = [];
+        let searchResultData = [];
+        let searchDebounceTimer = null;
+        let isSearching = false;
+        let localSearch = null;  // 天地图本地搜索对象
+        
+        // 初始化天地图本地搜索
+        function initLocalSearch() {
+            if (!map || typeof T === 'undefined') {
+                console.error('地图未初始化，无法创建搜索对象');
+                return;
+            }
+            
+            const config = {
+                pageCapacity: 10,  // 每页显示数量
+                onSearchComplete: handleLocalSearchResult  // 搜索结果回调
+            };
+            
+            localSearch = new T.LocalSearch(map, config);
+            console.log('天地图本地搜索初始化完成');
+        }
+        
+        // 处理本地搜索结果
+        function handleLocalSearchResult(result) {
+            isSearching = false;
+            const container = document.getElementById('searchResults');
+            const content = document.getElementById('searchContent');
+            
+            console.log('搜索结果:', result);
+            
+            // 清除之前的搜索标记
+            clearSearchMarkers();
+            
+            if (!result) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:#999;">搜索失败，请重试</div>';
+                content.classList.add('expanded');
+                return;
+            }
+            
+            const resultType = result.getResultType();
+            console.log('结果类型:', resultType);
+            
+            searchResultData = [];
+            
+            // 根据返回类型解析搜索结果
+            switch (parseInt(resultType)) {
+                case 1:
+                    // POI点数据结果
+                    const pois = result.getPois();
+                    console.log('POI数据:', pois);
+                    if (pois && pois.length > 0) {
+                        pois.forEach((poi, idx) => {
+                            // 打印完整的POI对象以便调试
+                            console.log(`POI ${idx} 完整数据:`, JSON.stringify(poi));
+                            let lng = null, lat = null;
+                            
+                            // 尝试多种方式获取坐标
+                            // 方式1: lonlat 字段 (格式: "经度 纬度" 或 "经度,纬度")
+                            if (poi.lonlat && poi.lonlat.trim()) {
+                                let lonlatArr;
+                                const lonlatStr = poi.lonlat.trim();
+                                if (lonlatStr.indexOf(' ') > -1) {
+                                    lonlatArr = lonlatStr.split(/\s+/);
+                                } else if (lonlatStr.indexOf(',') > -1) {
+                                    lonlatArr = lonlatStr.split(',');
+                                }
+                                if (lonlatArr && lonlatArr.length >= 2) {
+                                    lng = parseFloat(lonlatArr[0]);
+                                    lat = parseFloat(lonlatArr[1]);
+                                }
+                            }
+                            // 方式2: point 对象
+                            if ((!lng || !lat || isNaN(lng) || isNaN(lat)) && poi.point) {
+                                if (poi.point.x !== undefined) lng = parseFloat(poi.point.x);
+                                if (poi.point.y !== undefined) lat = parseFloat(poi.point.y);
+                                if (poi.point.lng !== undefined) lng = parseFloat(poi.point.lng);
+                                if (poi.point.lat !== undefined) lat = parseFloat(poi.point.lat);
+                            }
+                            // 方式3: 直接的 lng/lat 或 lon/lat 属性
+                            if ((!lng || !lat || isNaN(lng) || isNaN(lat))) {
+                                if (poi.lng !== undefined) lng = parseFloat(poi.lng);
+                                if (poi.lon !== undefined) lng = parseFloat(poi.lon);
+                                if (poi.lat !== undefined) lat = parseFloat(poi.lat);
+                            }
+                            // 方式4: lnglat 对象
+                            if ((!lng || !lat || isNaN(lng) || isNaN(lat)) && poi.lnglat) {
+                                if (poi.lnglat.lng !== undefined) lng = parseFloat(poi.lnglat.lng);
+                                if (poi.lnglat.lon !== undefined) lng = parseFloat(poi.lnglat.lon);
+                                if (poi.lnglat.lat !== undefined) lat = parseFloat(poi.lnglat.lat);
+                            }
+                            
+                            console.log(`POI ${idx} 解析坐标: lng=${lng}, lat=${lat}`);
+                            
+                            searchResultData.push({
+                                name: poi.name || '',
+                                address: poi.address || '',
+                                lng: (lng && !isNaN(lng)) ? lng : null,
+                                lat: (lat && !isNaN(lat)) ? lat : null
+                            });
+                        });
+                    }
+                    break;
+                case 2:
+                    // 推荐城市（统计信息）
+                    const statistics = result.getStatistics();
+                    if (statistics) {
+                        const priorityCitys = statistics.priorityCitys;
+                        if (priorityCitys && priorityCitys.length > 0) {
+                            priorityCitys.forEach(city => {
+                                searchResultData.push({
+                                    name: city.name,
+                                    address: `共${city.count}条结果`,
+                                    lng: null,
+                                    lat: null,
+                                    isCity: true,
+                                    adminCode: city.adminCode
+                                });
+                            });
+                        }
+                    }
+                    break;
+                case 3:
+                    // 行政区划边界
+                    const area = result.getArea();
+                    console.log('行政区划数据:', area);
+                    if (area) {
+                        // 如果有边界点数据，绘制边界
+                        if (area.points && area.points.length > 0) {
+                            area.points.forEach(point => {
+                                if (point.region) {
+                                    const regionArr = point.region.split(',');
+                                    const regionLngLats = [];
+                                    for (let m = 0; m < regionArr.length; m++) {
+                                        const lnglatArr = regionArr[m].split(' ');
+                                        if (lnglatArr.length >= 2) {
+                                            regionLngLats.push(new T.LngLat(parseFloat(lnglatArr[0]), parseFloat(lnglatArr[1])));
+                                        }
+                                    }
+                                    if (regionLngLats.length > 0) {
+                                        const line = new T.Polyline(regionLngLats, {
+                                            color: '#4285f4',
+                                            weight: 3,
+                                            opacity: 0.8,
+                                            lineStyle: 'dashed'
+                                        });
+                                        map.addOverLay(line);
+                                        searchMarkers.push(line);
+                                    }
+                                }
+                            });
+                        }
+                        // 定位到行政区划中心
+                        if (area.lonlat) {
+                            const coords = area.lonlat.split(',');
+                            const centerLng = parseFloat(coords[0]);
+                            const centerLat = parseFloat(coords[1]);
+                            searchResultData.push({
+                                name: result.getKeyword() + '（行政区划）',
+                                address: '点击定位到该区域',
+                                lng: centerLng,
+                                lat: centerLat,
+                                isArea: true
+                            });
+                            // 自动定位到该区域
+                            map.centerAndZoom(new T.LngLat(centerLng, centerLat), 10);
+                        }
+                    }
+                    break;
+                case 4:
+                    // 建议词信息
+                    const suggests = result.getSuggests();
+                    if (suggests && suggests.length > 0) {
+                        suggests.forEach(suggest => {
+                            searchResultData.push({
+                                name: suggest.name,
+                                address: suggest.address || '',
+                                lng: null,
+                                lat: null,
+                                isSuggest: true
+                            });
+                        });
+                    }
+                    break;
+            }
+            
+            // 处理提示信息
+            const prompts = result.getPrompt();
+            if (prompts && prompts.length > 0 && searchResultData.length === 0) {
+                prompts.forEach(prompt => {
+                    if (prompt.admins && prompt.admins.length > 0) {
+                        prompt.admins.forEach(admin => {
+                            searchResultData.push({
+                                name: admin.name,
+                                address: `共${admin.count || 0}条结果`,
+                                lng: null,
+                                lat: null,
+                                isCity: true,
+                                adminCode: admin.adminCode
+                            });
+                        });
+                    }
+                });
+            }
+            
+            // 如果是POI结果，在地图上显示所有标记
+            if (parseInt(resultType) === 1 && searchResultData.length > 0) {
+                addSearchMarkersToMap(searchResultData);
+            }
+            
+            displaySearchResults(searchResultData);
+        }
+        
+        // 切换搜索面板
+        function toggleSearchPanel() {
+            const panel = document.getElementById('searchPanel');
+            panel.classList.toggle('collapsed');
+        }
+        
+        // 搜索输入事件 - 自动搜索
+        function handleSearchInput(event) {
+            const keyword = event.target.value.trim();
+            
+            // 清除之前的定时器
+            if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+            }
+            
+            // 如果输入为空，清除结果
+            if (!keyword) {
+                document.getElementById('searchResults').innerHTML = '';
+                document.getElementById('searchContent').classList.remove('expanded');
+                return;
+            }
+            
+            // 至少输入2个字符才触发搜索
+            if (keyword.length < 2) {
+                return;
+            }
+            
+            // 防抖：500ms 后执行搜索
+            searchDebounceTimer = setTimeout(() => {
+                autoSearch(keyword);
+            }, 500);
+        }
+        
+        // 自动搜索函数 - 使用天地图LocalSearch
+        function autoSearch(keyword) {
+            if (isSearching) return;
+            
+            // 确保搜索对象已初始化
+            if (!localSearch) {
+                initLocalSearch();
+            }
+            
+            if (!localSearch) {
+                console.error('搜索对象初始化失败');
+                return;
+            }
+            
+            isSearching = true;
+            
+            // 显示加载状态
+            const container = document.getElementById('searchResults');
+            const content = document.getElementById('searchContent');
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:#999;">⏳ 搜索中...</div>';
+            content.classList.add('expanded');
+            
+            console.log('开始搜索:', keyword);
+            
+            // 使用天地图LocalSearch进行搜索
+            localSearch.search(keyword);
+        }
+        
+        // 搜索输入回车事件
+        function handleSearchKeyup(event) {
+            if (event.key === 'Enter') {
+                doSearch();
+            } else {
+                // 其他按键触发自动搜索
+                handleSearchInput(event);
+            }
+        }
+        
+        // 执行搜索（点击搜索按钮或回车）
+        function doSearch() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                alert('请输入搜索关键词');
+                return;
+            }
+            
+            // 清除防抖定时器
+            if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+            }
+            
+            // 重置搜索状态并执行搜索
+            isSearching = false;
+            autoSearch(keyword);
+        }
+        
+        // 显示搜索结果
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+            const content = document.getElementById('searchContent');
+            
+            if (results.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:#999;">未找到相关结果</div>';
+            } else {
+                let html = '';
+                results.forEach((item, index) => {
+                    // 根据结果类型显示不同图标和序号
+                    let icon = '◎';
+                    let markerIcon = '◉';
+                    let numDisplay = '';
+                    if (item.isCity) {
+                        icon = '🏙️';
+                        markerIcon = '→';
+                    } else if (item.isSuggest) {
+                        icon = '💡';
+                        markerIcon = '→';
+                    } else {
+                        // POI结果显示序号
+                        numDisplay = `<span style="display:inline-block;width:20px;height:20px;background:#e74c3c;color:#fff;border-radius:50%;text-align:center;line-height:20px;font-size:12px;margin-right:8px;">${index + 1}</span>`;
+                        icon = '';
+                    }
+                    
+                    html += `
+                        <div class="search-result-item" onclick="locateSearchResult(${index})" data-index="${index}">
+                            ${numDisplay}<span class="result-icon">${icon}</span>
+                            <div class="result-info">
+                                <div class="result-name">${item.name}</div>
+                                <div class="result-address">${item.address}</div>
+                            </div>
+                            <span class="result-marker">${markerIcon}</span>
+                        </div>
+                    `;
+                });
+                html += '<div class="clear-results" onclick="clearSearchResults()">🗑 清除查询结果</div>';
+                container.innerHTML = html;
+            }
+            
+            content.classList.add('expanded');
+        }
+        
+        // 在地图上添加所有搜索结果标记
+        function addSearchMarkersToMap(results) {
+            // 清除之前的标记
+            clearSearchMarkers();
+            
+            if (!results || results.length === 0) return;
+            
+            const bounds = [];
+            
+            results.forEach((item, index) => {
+                if (!item.lng || !item.lat) return;
+                
+                const lnglat = new T.LngLat(item.lng, item.lat);
+                bounds.push(lnglat);
+                
+                // 创建带序号的标记图标
+                const markerIcon = new T.Icon({
+                    iconUrl: 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42"><path fill="#e74c3c" d="M15 0C6.7 0 0 6.7 0 15c0 11.3 15 27 15 27s15-15.7 15-27C30 6.7 23.3 0 15 0z"/><circle fill="#fff" cx="15" cy="14" r="10"/><text x="15" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#e74c3c">${index + 1}</text></svg>`),
+                    iconSize: new T.Point(30, 42),
+                    iconAnchor: new T.Point(15, 42)
+                });
+                
+                const marker = new T.Marker(lnglat, { icon: markerIcon });
+                
+                // 点击标记显示信息窗口
+                marker.addEventListener('click', function() {
+                    const infoHtml = `<div style="padding:10px;background:#fff;border-radius:4px;min-width:150px;">
+                        <div style="font-weight:bold;margin-bottom:5px;">${item.name}</div>
+                        <div style="font-size:12px;color:#666;">${item.address}</div>
+                    </div>`;
+                    const info = new T.InfoWindow(infoHtml);
+                    marker.openInfoWindow(info);
+                });
+                
+                map.addOverLay(marker);
+                searchMarkers.push(marker);
+            });
+            
+            // 调整地图视野以显示所有标记
+            if (bounds.length > 0) {
+                if (bounds.length === 1) {
+                    map.centerAndZoom(bounds[0], 16);
+                } else {
+                    map.setViewport(bounds);
+                }
+            }
+        }
+        
+        // 定位到搜索结果
+        function locateSearchResult(index) {
+            const item = searchResultData[index];
+            if (!item || !map) return;
+            
+            // 如果是城市推荐，重新搜索该城市
+            if (item.isCity) {
+                document.getElementById('searchInput').value = item.name;
+                isSearching = false;
+                autoSearch(item.name);
+                return;
+            }
+            
+            // 如果是建议词，重新搜索该建议词
+            if (item.isSuggest) {
+                document.getElementById('searchInput').value = item.name;
+                isSearching = false;
+                autoSearch(item.name);
+                return;
+            }
+            
+            // 如果没有坐标，跳过
+            if (!item.lng || !item.lat) {
+                console.log('该结果没有坐标信息');
+                return;
+            }
+            
+            // 定位到该点并显示信息窗口
+            const lnglat = new T.LngLat(item.lng, item.lat);
+            map.centerAndZoom(lnglat, 16);
+            
+            // 找到对应的标记并打开信息窗口
+            if (searchMarkers[index]) {
+                const infoHtml = `<div style="padding:10px;background:#fff;border-radius:4px;min-width:150px;">
+                    <div style="font-weight:bold;margin-bottom:5px;">${item.name}</div>
+                    <div style="font-size:12px;color:#666;">${item.address}</div>
+                </div>`;
+                const info = new T.InfoWindow(infoHtml);
+                searchMarkers[index].openInfoWindow(info);
+            }
+        }
+        
+        // 清除搜索标记
+        function clearSearchMarkers() {
+            searchMarkers.forEach(marker => {
+                try { map.removeOverLay(marker); } catch(e) {}
+            });
+            searchMarkers = [];
+        }
+        
+        // 清除搜索结果
+        function clearSearchResults() {
+            clearSearchMarkers();
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('searchContent').classList.remove('expanded');
+            document.getElementById('searchInput').value = '';
+            searchResultData = [];
+        }
+
+        // ==================== 空间查询功能 ====================
+        let spatialOverlays = [];
+        let coordGroupCount = 3;
+        let currentDrawMode = null;
+        
+        // 切换空间查询面板
+        function toggleSpatialPanel() {
+            const panel = document.getElementById('spatialPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // 设置绘制模式
+        function setDrawMode(mode) {
+            currentDrawMode = mode;
+            document.querySelectorAll('.spatial-tool').forEach(btn => btn.classList.remove('active'));
+            if (mode === 'point') {
+                document.getElementById('drawPointBtn').classList.add('active');
+            } else if (mode === 'polygon') {
+                document.getElementById('drawPolygonBtn').classList.add('active');
+            }
+        }
+        
+        // 添加坐标组
+        function addCoordGroup() {
+            const container = document.getElementById('coordInputs');
+            const newIndex = coordGroupCount;
+            coordGroupCount++;
+            
+            const newGroup = document.createElement('div');
+            newGroup.className = 'coord-group';
+            newGroup.innerHTML = `
+                <input type="text" class="coord-input" placeholder="输入X/经度" data-index="${newIndex}" data-type="x">
+                <span class="coord-sep">-</span>
+                <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="${newIndex}" data-type="y">
+                <button class="coord-delete" onclick="removeCoordGroup(this)" title="删除">×</button>
+            `;
+            
+            // 在最后一个坐标组之前插入
+            const lastGroup = container.lastElementChild;
+            container.insertBefore(newGroup, lastGroup);
+        }
+        
+        // 删除坐标组
+        function removeCoordGroup(btn) {
+            const group = btn.parentElement;
+            group.remove();
+        }
+        
+        // 清除坐标输入
+        function clearCoords() {
+            // 清除覆盖物
+            spatialOverlays.forEach(overlay => {
+                try { map.removeOverLay(overlay); } catch(e) {}
+            });
+            spatialOverlays = [];
+            
+            // 重置输入框
+            document.getElementById('coordInputs').innerHTML = `
+                <div class="coord-group">
+                    <input type="text" class="coord-input" placeholder="输入X/经度" data-index="0" data-type="x">
+                    <span class="coord-sep">-</span>
+                    <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="0" data-type="y">
+                </div>
+                <div class="coord-group">
+                    <input type="text" class="coord-input" placeholder="输入X/经度" data-index="1" data-type="x">
+                    <span class="coord-sep">-</span>
+                    <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="1" data-type="y">
+                </div>
+                <div class="coord-group">
+                    <input type="text" class="coord-input" placeholder="输入X/经度" data-index="2" data-type="x">
+                    <span class="coord-sep">-</span>
+                    <input type="text" class="coord-input" placeholder="输入Y/纬度" data-index="2" data-type="y">
+                    <button class="coord-add-btn" onclick="addCoordGroup()" title="添加坐标组">+</button>
+                </div>
+            `;
+            coordGroupCount = 3;
+        }
+        
+        // CGCS2000 3度带高斯-克吕格投影转WGS84经纬度
+        // 坐标系：CGCS2000_3_Degree_GK_Zone_38
+        // 中央经线：114°，假东偏移：38500000（带号38 + 500000）
+        function cgcs2000ToWgs84(x, y) {
+            // CGCS2000椭球参数（与WGS84基本一致）
+            const a = 6378137.0;              // 长半轴
+            const f = 1 / 298.257222101;      // 扁率
+            const b = a * (1 - f);            // 短半轴
+            const e2 = (a * a - b * b) / (a * a);  // 第一偏心率平方
+            const ep2 = (a * a - b * b) / (b * b); // 第二偏心率平方
+            const L0 = 114.0;                 // 中央经线（度）
+            const falseEasting = 38500000.0; // 假东偏移（带号38 + 500000）
+            
+            // 去掉假东偏移，得到相对于中央经线的X坐标
+            const xOffset = x - falseEasting;
+            
+            // 子午线弧长公式系数
+            const e4 = e2 * e2;
+            const e6 = e4 * e2;
+            const e8 = e6 * e2;
+            
+            const A0 = 1 - e2/4 - 3*e4/64 - 5*e6/256 - 175*e8/16384;
+            const A2 = 3*e2/8 + 3*e4/32 + 45*e6/1024 + 105*e8/4096;
+            const A4 = 15*e4/256 + 45*e6/1024 + 525*e8/16384;
+            const A6 = 35*e6/3072 + 175*e8/12288;
+            const A8 = 315*e8/131072;
+            
+            // 迭代求底点纬度Bf
+            let Bf = y / (a * A0);
+            for (let i = 0; i < 20; i++) {
+                const sin2Bf = Math.sin(2 * Bf);
+                const sin4Bf = Math.sin(4 * Bf);
+                const sin6Bf = Math.sin(6 * Bf);
+                const sin8Bf = Math.sin(8 * Bf);
+                
+                // 子午线弧长
+                const Xf = a * (A0 * Bf - A2 * sin2Bf + A4 * sin4Bf - A6 * sin6Bf + A8 * sin8Bf);
+                
+                // 子午线弧长对纬度的导数
+                const cos2Bf = Math.cos(2 * Bf);
+                const cos4Bf = Math.cos(4 * Bf);
+                const cos6Bf = Math.cos(6 * Bf);
+                const cos8Bf = Math.cos(8 * Bf);
+                const dXf = a * (A0 - 2*A2*cos2Bf + 4*A4*cos4Bf - 6*A6*cos6Bf + 8*A8*cos8Bf);
+                
+                const dBf = (y - Xf) / dXf;
+                Bf = Bf + dBf;
+                
+                if (Math.abs(dBf) < 1e-14) break;
+            }
+            
+            // 底点纬度处的参数
+            const sinBf = Math.sin(Bf);
+            const cosBf = Math.cos(Bf);
+            const tanBf = Math.tan(Bf);
+            
+            // 卯酉圈曲率半径
+            const Nf = a / Math.sqrt(1 - e2 * sinBf * sinBf);
+            // 子午圈曲率半径
+            const Mf = a * (1 - e2) / Math.pow(1 - e2 * sinBf * sinBf, 1.5);
+            
+            const tf = tanBf;
+            const tf2 = tf * tf;
+            const tf4 = tf2 * tf2;
+            const etaf2 = ep2 * cosBf * cosBf;
+            
+            // 归一化的x坐标
+            const yf = xOffset / Nf;
+            const yf2 = yf * yf;
+            const yf3 = yf2 * yf;
+            const yf4 = yf2 * yf2;
+            const yf5 = yf4 * yf;
+            
+            // 纬度计算
+            const B = Bf - tf * yf2 / (2 * Mf / Nf) * (
+                1 
+                - yf2 / 12 * (5 + 3*tf2 + etaf2 - 9*etaf2*tf2) 
+                + yf4 / 360 * (61 + 90*tf2 + 45*tf4)
+            );
+            
+            // 经度计算
+            const secBf = 1 / cosBf;
+            const L = L0 * Math.PI / 180 + secBf * (
+                yf 
+                - yf3 / 6 * (1 + 2*tf2 + etaf2) 
+                + yf5 / 120 * (5 + 28*tf2 + 24*tf4 + 6*etaf2 + 8*etaf2*tf2)
+            );
+            
+            return {
+                lng: L * 180 / Math.PI,
+                lat: B * 180 / Math.PI
+            };
+        }
+        
+        // 判断是否为投影坐标（大数值）
+        function isProjectedCoord(x, y) {
+            // CGCS2000_3_Degree_GK_Zone_38 投影坐标特征：
+            // X（东向）：约 38400000 ~ 38600000（带号38 + 500000假东偏移 ± 范围）
+            // Y（北向）：约 3800000 ~ 3900000（对应纬度34°~35°附近）
+            // 经纬度特征：经度约113~115，纬度约34~35
+            
+            // 如果X值大于1000000或Y值大于100000，认为是投影坐标
+            return (Math.abs(x) > 1000000 || Math.abs(y) > 100000);
+        }
+        
+        // 解析坐标值
+        function parseCoordValue(xStr, yStr) {
+            const x = parseFloat(xStr);
+            const y = parseFloat(yStr);
+            
+            if (isNaN(x) || isNaN(y)) return null;
+            
+            // 判断是投影坐标还是经纬度
+            if (isProjectedCoord(x, y)) {
+                // 投影坐标转经纬度
+                return cgcs2000ToWgs84(x, y);
+            } else {
+                // 已经是经纬度
+                return { lng: x, lat: y };
+            }
+        }
+        
+        // 根据坐标定位
+        function locateByCoords() {
+            const inputs = document.querySelectorAll('#coordInputs .coord-input');
+            const coords = [];
+            
+            // 收集坐标
+            for (let i = 0; i < inputs.length; i += 2) {
+                const xInput = inputs[i];
+                const yInput = inputs[i + 1];
+                const xVal = xInput.value.trim();
+                const yVal = yInput.value.trim();
+                
+                if (xVal && yVal) {
+                    const coord = parseCoordValue(xVal, yVal);
+                    if (coord) {
+                        coords.push(coord);
+                    }
+                }
+            }
+            
+            if (coords.length === 0) {
+                alert('请输入有效的坐标值');
+                return;
+            }
+            
+            // 清除之前的覆盖物
+            spatialOverlays.forEach(overlay => {
+                try { map.removeOverLay(overlay); } catch(e) {}
+            });
+            spatialOverlays = [];
+            
+            if (coords.length === 1) {
+                // 单点 - 创建标记
+                const lnglat = new T.LngLat(coords[0].lng, coords[0].lat);
+                const marker = new T.Marker(lnglat, {
+                    icon: new T.Icon({
+                        iconUrl: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41"><path fill="#e74c3c" d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 28.5 12.5 28.5S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0zm0 19c-3.6 0-6.5-2.9-6.5-6.5S8.9 6 12.5 6s6.5 2.9 6.5 6.5-2.9 6.5-6.5 6.5z"/></svg>'),
+                        iconSize: new T.Point(25, 41),
+                        iconAnchor: new T.Point(12, 41)
+                    })
+                });
+                map.addOverLay(marker);
+                spatialOverlays.push(marker);
+                map.centerAndZoom(lnglat, 16);
+            } else if (coords.length === 2) {
+                // 两点 - 创建线
+                const points = coords.map(c => new T.LngLat(c.lng, c.lat));
+                const line = new T.Polyline(points, {
+                    color: '#e74c3c',
+                    weight: 3,
+                    opacity: 0.8
+                });
+                map.addOverLay(line);
+                spatialOverlays.push(line);
+                
+                // 添加端点标记
+                points.forEach(p => {
+                    const marker = new T.Marker(p);
+                    map.addOverLay(marker);
+                    spatialOverlays.push(marker);
+                });
+                
+                map.setViewport(points);
+            } else {
+                // 三点及以上 - 创建多边形
+                const points = coords.map(c => new T.LngLat(c.lng, c.lat));
+                const polygon = new T.Polygon(points, {
+                    color: '#e74c3c',
+                    weight: 2,
+                    opacity: 0.8,
+                    fillColor: '#e74c3c',
+                    fillOpacity: 0.3
+                });
+                map.addOverLay(polygon);
+                spatialOverlays.push(polygon);
+                map.setViewport(points);
+            }
+        }
+        
+        // 上传坐标文件
+        function uploadCoordFile() {
+            document.getElementById('coordFileInput').click();
+        }
+        
+        // 处理文件上传
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split('\n').filter(line => line.trim());
+                const coords = [];
+                
+                lines.forEach(line => {
+                    const parts = line.trim().split(',');
+                    if (parts.length >= 2) {
+                        const x = parseFloat(parts[0].trim());
+                        const y = parseFloat(parts[1].trim());
+                        if (!isNaN(x) && !isNaN(y)) {
+                            const coord = parseCoordValue(x.toString(), y.toString());
+                            if (coord) {
+                                coords.push(coord);
+                            }
+                        }
+                    }
+                });
+                
+                if (coords.length === 0) {
+                    alert('文件中未找到有效坐标');
+                    return;
+                }
+                
+                // 清除之前的覆盖物
+                spatialOverlays.forEach(overlay => {
+                    try { map.removeOverLay(overlay); } catch(e) {}
+                });
+                spatialOverlays = [];
+                
+                // 创建多边形或点
+                if (coords.length >= 3) {
+                    const points = coords.map(c => new T.LngLat(c.lng, c.lat));
+                    const polygon = new T.Polygon(points, {
+                        color: '#4285f4',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: '#4285f4',
+                        fillOpacity: 0.3
+                    });
+                    map.addOverLay(polygon);
+                    spatialOverlays.push(polygon);
+                    map.setViewport(points);
+                    
+                    alert(`成功导入 ${coords.length} 个坐标点，已生成面图层`);
+                } else {
+                    coords.forEach(coord => {
+                        const lnglat = new T.LngLat(coord.lng, coord.lat);
+                        const marker = new T.Marker(lnglat);
+                        map.addOverLay(marker);
+                        spatialOverlays.push(marker);
+                    });
+                    
+                    if (coords.length === 1) {
+                        map.centerAndZoom(new T.LngLat(coords[0].lng, coords[0].lat), 16);
+                    } else {
+                        map.setViewport(coords.map(c => new T.LngLat(c.lng, c.lat)));
+                    }
+                    
+                    alert(`成功导入 ${coords.length} 个坐标点`);
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; // 清除文件选择，允许重复选择同一文件
+        }
+        
+        // ==================== 绘制工具功能 ====================
+        
+        // 绘制相关变量
+        let drawToolMode = null;     // 当前绘制模式: 'point', 'line', 'polygon'
+        let drawOverlays = [];       // 所有绘制的覆盖物
+        let drawHistory = [];        // 操作历史（用于撤回）
+        let tempPoints = [];         // 临时点集合（绘制线和面时使用）
+        let tempMarkers = [];        // 临时标记点
+        let tempLine = null;         // 临时线
+        let tempLabels = [];         // 临时距离标签
+        let totalDistance = 0;       // 总距离
+        
+        // 切换绘制面板
+        function toggleDrawPanel() {
+            const panel = document.getElementById('drawPanel');
+            panel.classList.toggle('collapsed');
+        }
+        
+        // 开始绘制
+        function startDraw(mode) {
+            // 清除之前的绘制状态
+            clearTempDraw();
+            
+            // 切换模式
+            if (drawToolMode === mode) {
+                // 再次点击同一按钮，取消绘制模式
+                drawToolMode = null;
+                updateDrawButtons();
+                updateDrawInfo('点击按钮开始绘制');
+                map.setDefaultCursor('default');
+                return;
+            }
+            
+            drawToolMode = mode;
+            updateDrawButtons();
+            map.setDefaultCursor('crosshair');
+            
+            if (mode === 'point') {
+                updateDrawInfo('点击地图添加点');
+            } else if (mode === 'line') {
+                updateDrawInfo('点击地图添加点，双击结束绘制');
+            } else if (mode === 'polygon') {
+                updateDrawInfo('点击地图添加顶点，双击结束绘制');
+            }
+        }
+        
+        // 更新绘制按钮状态
+        function updateDrawButtons() {
+            document.getElementById('drawPointToolBtn').classList.toggle('active', drawToolMode === 'point');
+            document.getElementById('drawLineToolBtn').classList.toggle('active', drawToolMode === 'line');
+            document.getElementById('drawPolygonToolBtn').classList.toggle('active', drawToolMode === 'polygon');
+        }
+        
+        // 更新绘制信息
+        function updateDrawInfo(text) {
+            document.getElementById('drawInfo').textContent = text;
+        }
+        
+        // 清除临时绘制
+        function clearTempDraw() {
+            tempMarkers.forEach(m => { try { map.removeOverLay(m); } catch(e) {} });
+            tempLabels.forEach(l => { try { map.removeOverLay(l); } catch(e) {} });
+            if (tempLine) { try { map.removeOverLay(tempLine); } catch(e) {} }
+            tempPoints = [];
+            tempMarkers = [];
+            tempLabels = [];
+            tempLine = null;
+            totalDistance = 0;
+        }
+        
+        // 计算两点间距离（米）
+        function calculateDistance(lnglat1, lnglat2) {
+            const R = 6371000; // 地球半径（米）
+            const lat1 = lnglat1.getLat() * Math.PI / 180;
+            const lat2 = lnglat2.getLat() * Math.PI / 180;
+            const deltaLat = (lnglat2.getLat() - lnglat1.getLat()) * Math.PI / 180;
+            const deltaLng = (lnglat2.getLng() - lnglat1.getLng()) * Math.PI / 180;
+            
+            const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                      Math.cos(lat1) * Math.cos(lat2) *
+                      Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c;
+        }
+        
+        // 格式化距离显示
+        function formatDistance(meters) {
+            if (meters < 1000) {
+                return meters.toFixed(1) + ' 米';
+            } else {
+                return (meters / 1000).toFixed(2) + ' 公里';
+            }
+        }
+        
+        // 地图点击事件处理
+        function onMapClickForDraw(e) {
+            if (!drawToolMode || !e.lnglat) return;
+            
+            const lnglat = e.lnglat;
+            
+            if (drawToolMode === 'point') {
+                // 绘制点
+                const marker = new T.Marker(lnglat, {
+                    icon: new T.Icon({
+                        iconUrl: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41"><path fill="#e74c3c" d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 28.5 12.5 28.5S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0zm0 19c-3.6 0-6.5-2.9-6.5-6.5S8.9 6 12.5 6s6.5 2.9 6.5 6.5-2.9 6.5-6.5 6.5z"/></svg>'),
+                        iconSize: new T.Point(25, 41),
+                        iconAnchor: new T.Point(12, 41)
+                    })
+                });
+                map.addOverLay(marker);
+                drawOverlays.push(marker);
+                drawHistory.push({ type: 'point', overlay: marker });
+                updateDrawInfo('已添加点，继续点击添加更多点');
+                
+            } else if (drawToolMode === 'line') {
+                // 绘制线
+                tempPoints.push(lnglat);
+                
+                // 添加顶点标记
+                const marker = new T.Marker(lnglat, {
+                    icon: new T.Icon({
+                        iconUrl: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#4285f4" stroke="#fff" stroke-width="2"/></svg>'),
+                        iconSize: new T.Point(12, 12),
+                        iconAnchor: new T.Point(6, 6)
+                    })
+                });
+                map.addOverLay(marker);
+                tempMarkers.push(marker);
+                
+                // 如果有两个以上的点，绘制线段并显示距离
+                if (tempPoints.length >= 2) {
+                    // 更新临时线
+                    if (tempLine) {
+                        map.removeOverLay(tempLine);
+                    }
+                    tempLine = new T.Polyline(tempPoints, {
+                        color: '#4285f4',
+                        weight: 3,
+                        opacity: 0.8
+                    });
+                    map.addOverLay(tempLine);
+                    
+                    // 计算最后两点间的距离
+                    const lastIdx = tempPoints.length - 1;
+                    const segmentDist = calculateDistance(tempPoints[lastIdx - 1], tempPoints[lastIdx]);
+                    totalDistance += segmentDist;
+                    
+                    // 添加距离标签
+                    const midLng = (tempPoints[lastIdx - 1].getLng() + tempPoints[lastIdx].getLng()) / 2;
+                    const midLat = (tempPoints[lastIdx - 1].getLat() + tempPoints[lastIdx].getLat()) / 2;
+                    const distLabel = new T.Label({
+                        text: `<div style="background:#4285f4;color:#fff;padding:2px 6px;border-radius:3px;font-size:11px;white-space:nowrap;">${formatDistance(segmentDist)}</div>`,
+                        position: new T.LngLat(midLng, midLat),
+                        offset: new T.Point(-20, -10)
+                    });
+                    map.addOverLay(distLabel);
+                    tempLabels.push(distLabel);
+                    
+                    updateDrawInfo(`总距离: ${formatDistance(totalDistance)}，双击结束`);
+                } else {
+                    updateDrawInfo('继续点击添加点，双击结束');
+                }
+                
+            } else if (drawToolMode === 'polygon') {
+                // 绘制面
+                tempPoints.push(lnglat);
+                
+                // 添加顶点标记
+                const marker = new T.Marker(lnglat, {
+                    icon: new T.Icon({
+                        iconUrl: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#e74c3c" stroke="#fff" stroke-width="2"/></svg>'),
+                        iconSize: new T.Point(12, 12),
+                        iconAnchor: new T.Point(6, 6)
+                    })
+                });
+                map.addOverLay(marker);
+                tempMarkers.push(marker);
+                
+                // 更新临时线
+                if (tempPoints.length >= 2) {
+                    if (tempLine) {
+                        map.removeOverLay(tempLine);
+                    }
+                    tempLine = new T.Polyline(tempPoints, {
+                        color: '#e74c3c',
+                        weight: 2,
+                        opacity: 0.8
+                    });
+                    map.addOverLay(tempLine);
+                }
+                
+                updateDrawInfo(`已添加 ${tempPoints.length} 个顶点，双击结束`);
+            }
+        }
+        
+        // 地图双击事件处理（结束绘制）
+        function onMapDblClickForDraw(e) {
+            if (!drawToolMode || drawToolMode === 'point') return;
+            
+            if (drawToolMode === 'line' && tempPoints.length >= 2) {
+                // 完成线绘制
+                const line = new T.Polyline(tempPoints.slice(), {
+                    color: '#4285f4',
+                    weight: 3,
+                    opacity: 0.9
+                });
+                map.addOverLay(line);
+                drawOverlays.push(line);
+                
+                // 保存顶点标记和距离标签
+                tempMarkers.forEach(m => drawOverlays.push(m));
+                tempLabels.forEach(l => drawOverlays.push(l));
+                
+                // 添加总距离标签
+                const lastPoint = tempPoints[tempPoints.length - 1];
+                const totalLabel = new T.Label({
+                    text: `<div style="background:#2ecc71;color:#fff;padding:3px 8px;border-radius:3px;font-size:12px;font-weight:bold;">总计: ${formatDistance(totalDistance)}</div>`,
+                    position: lastPoint,
+                    offset: new T.Point(10, -10)
+                });
+                map.addOverLay(totalLabel);
+                drawOverlays.push(totalLabel);
+                
+                drawHistory.push({ 
+                    type: 'line', 
+                    overlays: [line, ...tempMarkers, ...tempLabels, totalLabel],
+                    distance: totalDistance
+                });
+                
+                // 清除临时状态但不清除已保存的覆盖物
+                tempPoints = [];
+                tempMarkers = [];
+                tempLabels = [];
+                tempLine = null;
+                totalDistance = 0;
+                
+                updateDrawInfo(`线绘制完成，点击继续绘制`);
+                
+            } else if (drawToolMode === 'polygon' && tempPoints.length >= 3) {
+                // 完成面绘制
+                const polygon = new T.Polygon(tempPoints.slice(), {
+                    color: '#e74c3c',
+                    weight: 2,
+                    opacity: 0.8,
+                    fillColor: '#e74c3c',
+                    fillOpacity: 0.3
+                });
+                map.addOverLay(polygon);
+                drawOverlays.push(polygon);
+                
+                // 保存顶点标记
+                tempMarkers.forEach(m => drawOverlays.push(m));
+                
+                drawHistory.push({ 
+                    type: 'polygon', 
+                    overlays: [polygon, ...tempMarkers]
+                });
+                
+                // 清除临时线
+                if (tempLine) {
+                    map.removeOverLay(tempLine);
+                }
+                
+                tempPoints = [];
+                tempMarkers = [];
+                tempLine = null;
+                
+                updateDrawInfo(`面绘制完成，点击继续绘制`);
+            }
+        }
+        
+        // 撤回操作
+        function undoDraw() {
+            if (drawHistory.length === 0) {
+                updateDrawInfo('没有可撤回的操作');
+                return;
+            }
+            
+            const lastAction = drawHistory.pop();
+            
+            if (lastAction.type === 'point') {
+                try { map.removeOverLay(lastAction.overlay); } catch(e) {}
+                const idx = drawOverlays.indexOf(lastAction.overlay);
+                if (idx > -1) drawOverlays.splice(idx, 1);
+            } else {
+                lastAction.overlays.forEach(overlay => {
+                    try { map.removeOverLay(overlay); } catch(e) {}
+                    const idx = drawOverlays.indexOf(overlay);
+                    if (idx > -1) drawOverlays.splice(idx, 1);
+                });
+            }
+            
+            updateDrawInfo('已撤回上一步操作');
+        }
+        
+        // 清除所有绘制
+        function clearAllDraw() {
+            // 清除临时绘制
+            clearTempDraw();
+            
+            // 清除所有已保存的覆盖物
+            drawOverlays.forEach(overlay => {
+                try { map.removeOverLay(overlay); } catch(e) {}
+            });
+            drawOverlays = [];
+            drawHistory = [];
+            
+            // 重置状态
+            drawToolMode = null;
+            updateDrawButtons();
+            map.setDefaultCursor('default');
+            updateDrawInfo('已清除所有绘制');
+        }
+        
+        // 初始化绘制事件监听
+        function initDrawEvents() {
+            map.addEventListener('click', onMapClickForDraw);
+            map.addEventListener('dblclick', onMapDblClickForDraw);
+        }
     </script>
 </body>
 </html>
